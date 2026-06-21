@@ -109,12 +109,12 @@ namespace error::status {
     }
 }
 
-class HttpException : public std::logic_error {
+class HttpHeaderException : public std::logic_error {
 public:
-    explicit HttpException(ErrorStatus e)
+    explicit HttpHeaderException(ErrorStatus e)
         : std::logic_error(std::string{error::status::to_string(e)}), status(e) {}
 
-        explicit HttpException(std::string msg) : std::logic_error(msg) {}
+        explicit HttpHeaderException(std::string msg) : std::logic_error(msg) {}
 
     ErrorStatus error() const noexcept { return status; }
 private:
