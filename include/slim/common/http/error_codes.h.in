@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 #include <array>
+#include <utility>
 
 #define SLIMCOMMONHTTP_VERSION  "@SLIMCOMMONHTTP_VERSION@"
 #define SLIMCOMMONHTTP_GIT_HASH "@SLIMCOMMONHTTP_GIT_HASH@"
@@ -54,52 +55,78 @@ enum class ErrorStatus : uint8_t {
     HeaderValueEmpty,
     HeaderValueInvalidChar,
     HeaderValueInvalidFolding,
+    UrlStringEmpty,
+    UrlInvalidControlCharacter,
+    UrlSchemeInvalidCharacter,
+    UrlSchemeDelimiterMissing,
+    UrlSchemeUnsupported,
+    UrlHostInvalidStart,
+    UrlHostInvalidCharacter,
+    UrlHostMissing,
+    UrlPortInvalidCharacter,
+    UrlBodyInvalidCharacter,
+    UrlFilePathMissing,
+    UrlFilePathTrailingSlash,
+    UrlUnparsable,
     END
 };
 
 namespace error::status {
     constexpr std::array<std::string_view, static_cast<std::size_t>(ErrorStatus::END)> strings = {
-        "OK",                                                                  // OK
-        "Cookie domain cannot consist of a bare dot",                          // CookieDomainBareDot
-        "Cookie domain name cannot be empty",                                  // CookieDomainEmpty
-        "Cookie domain contains an invalid character",                         // CookieDomainInvalidChar
-        "Cookie domain label cannot be empty",                                 // CookieDomainLabelEmpty
-        "Cookie domain label has a hyphen in an invalid position",             // CookieDomainLabelInvalidHyphen
-        "Cookie domain label exceeds the maximum allowed length",              // CookieDomainLabelTooLong
-        "Cookie domain's top-level domain (TLD) must not be numeric",          // CookieDomainNumericTld
-        "Cookie domain name exceeds the maximum allowed length",               // CookieDomainTooLong
-        "Cookie domain name must not end with a trailing dot",                 // CookieDomainTrailingDot
-        "Cookie string cannot be empty",                                       // CookieEmptyString
-        "Cookie Expires attribute has an invalid date format",                 // CookieExpiresInvalidFormat
-        "Cookie attribute contains an invalid boolean value",                  // CookieInvalidBoolean
-        "Cookie name failed validation",                                       // CookieInvalidName
-        "Cookie value failed validation",                                      // CookieInvalidValue
-        "Cookie is missing a '=' separator",                                   // CookieMalformedMissingEquals
-        "Cookie pair is missing a '=' separator",                              // CookieMalformedPairMissingEquals
-        "Cookie Max-Age attribute cannot be empty",                            // CookieMaxAgeEmpty
-        "Cookie Max-Age value exceeds the maximum allowed limit",              // CookieMaxAgeExceedsLimit
-        "Cookie Max-Age attribute has an invalid format",                      // CookieMaxAgeInvalidFormat
-        "Cookie Max-Age value has unexpected trailing characters",             // CookieMaxAgeTrailingChars
-        "Cookie name cannot be empty",                                         // CookieNameEmpty
-        "Cookie __Host- prefix cannot be combined with a Domain attribute",    // CookieNameHostPrefixHasDomain
-        "Cookie __Host- prefix requires the Path attribute to be '/'",         // CookieNameHostPrefixInvalidPath
-        "Cookie name contains an invalid character",                           // CookieNameInvalidChar
-        "Cookie name prefix requires the Secure attribute",                    // CookieNamePrefixRequiresSecure
-        "Partitioned cookies require SameSite=None",                           // CookiePartitionedRequiresSameSiteNone
-        "Partitioned cookies require the Secure attribute",                    // CookiePartitionedRequiresSecure
-        "Cookie path contains an invalid character",                           // CookiePathInvalidChar
-        "Cookie path must begin with a forward slash ('/')",                   // CookiePathMissingLeadingSlash
-        "Cookie SameSite attribute has an invalid value",                      // CookieSameSiteInvalid
-        "Cookie SameSite=None requires the Secure attribute",                  // CookieSameSiteNoneRequiresSecure
-        "Cookie exceeds the maximum allowed size",                             // CookieTooLarge
-        "Cookie value contains an invalid character",                          // CookieValueInvalidChar
-        "Cookie value has an unmatched quotation mark",                        // CookieValueUnmatchedQuote
-        "Header contains an invalid delimiter",                                // HeaderDelimiterInvalid
-        "Header name cannot be empty",                                         // HeaderNameEmpty
-        "Header name contains an invalid character",                           // HeaderNameInvalidChar
-        "Header value cannot be empty",                                        // HeaderValueEmpty
-        "Header value contains an invalid character",                          // HeaderValueInvalidChar
-        "Header value contains obsolete line folding (obs-fold)"               // HeaderValueInvalidFolding
+        "OK",                                                                // OK
+        "Cookie domain cannot consist of a bare dot",                        // CookieDomainBareDot
+        "Cookie domain name cannot be empty",                                // CookieDomainEmpty
+        "Cookie domain contains an invalid character",                       // CookieDomainInvalidChar
+        "Cookie domain label cannot be empty",                               // CookieDomainLabelEmpty
+        "Cookie domain label has a hyphen in an invalid position",           // CookieDomainLabelInvalidHyphen
+        "Cookie domain label exceeds the maximum allowed length",            // CookieDomainLabelTooLong
+        "Cookie domain's top-level domain (TLD) must not be numeric",        // CookieDomainNumericTld
+        "Cookie domain name exceeds the maximum allowed length",             // CookieDomainTooLong
+        "Cookie domain name must not end with a trailing dot",               // CookieDomainTrailingDot
+        "Cookie string cannot be empty",                                     // CookieEmptyString
+        "Cookie Expires attribute has an invalid date format",               // CookieExpiresInvalidFormat
+        "Cookie attribute contains an invalid boolean value",                // CookieInvalidBoolean
+        "Cookie name failed validation",                                     // CookieInvalidName
+        "Cookie value failed validation",                                    // CookieInvalidValue
+        "Cookie is missing a '=' separator",                                 // CookieMalformedMissingEquals
+        "Cookie pair is missing a '=' separator",                            // CookieMalformedPairMissingEquals
+        "Cookie Max-Age attribute cannot be empty",                          // CookieMaxAgeEmpty
+        "Cookie Max-Age value exceeds the maximum allowed limit",            // CookieMaxAgeExceedsLimit
+        "Cookie Max-Age attribute has an invalid format",                    // CookieMaxAgeInvalidFormat
+        "Cookie Max-Age value has unexpected trailing characters",           // CookieMaxAgeTrailingChars
+        "Cookie name cannot be empty",                                       // CookieNameEmpty
+        "Cookie __Host- prefix cannot be combined with a Domain attribute",  // CookieNameHostPrefixHasDomain
+        "Cookie __Host- prefix requires the Path attribute to be '/'",       // CookieNameHostPrefixInvalidPath
+        "Cookie name contains an invalid character",                         // CookieNameInvalidChar
+        "Cookie name prefix requires the Secure attribute",                  // CookieNamePrefixRequiresSecure
+        "Partitioned cookies require SameSite=None",                         // CookiePartitionedRequiresSameSiteNone
+        "Partitioned cookies require the Secure attribute",                  // CookiePartitionedRequiresSecure
+        "Cookie path contains an invalid character",                         // CookiePathInvalidChar
+        "Cookie path must begin with a forward slash ('/')",                 // CookiePathMissingLeadingSlash
+        "Cookie SameSite attribute has an invalid value",                    // CookieSameSiteInvalid
+        "Cookie SameSite=None requires the Secure attribute",                // CookieSameSiteNoneRequiresSecure
+        "Cookie exceeds the maximum allowed size",                           // CookieTooLarge
+        "Cookie value contains an invalid character",                        // CookieValueInvalidChar
+        "Cookie value has an unmatched quotation mark",                      // CookieValueUnmatchedQuote
+        "Header contains an invalid delimiter",                              // HeaderDelimiterInvalid
+        "Header name cannot be empty",                                       // HeaderNameEmpty
+        "Header name contains an invalid character",                         // HeaderNameInvalidChar
+        "Header value cannot be empty",                                      // HeaderValueEmpty
+        "Header value contains an invalid character",                        // HeaderValueInvalidChar
+        "Header value contains obsolete line folding (obs-fold)",            // HeaderValueInvalidFolding
+        "URL string cannot be empty",                                        // UrlStringEmpty
+        "URL contains an invalid control character",                         // UrlInvalidControlCharacter
+        "URL scheme contains an invalid character",                          // UrlSchemeInvalidCharacter
+        "URL scheme delimiter not found (expected \"://\")",                 // UrlSchemeDelimiterMissing
+        "URL scheme is unsupported",                                         // UrlSchemeUnsupported
+        "URL host must begin with alphanumeric data",                        // UrlHostInvalidStart
+        "URL host contains an invalid character",                            // UrlHostInvalidCharacter
+        "URL must contain a valid host[:port]",                              // UrlHostMissing
+        "URL port contains an invalid character",                            // UrlPortInvalidCharacter
+        "URL body contains an invalid character",                            // UrlBodyInvalidCharacter
+        "file:// URL must contain a path (e.g. file:///etc/hosts)",          // UrlFilePathMissing
+        "file:// URL path must end with a filename, not '/'",                // UrlFilePathTrailingSlash
+        "URL is unparsable"                                                  // UrlUnparsable
     };
 
     [[nodiscard]] constexpr std::string_view to_string(ErrorStatus status) noexcept {
@@ -121,6 +148,11 @@ private:
     ErrorStatus status = ErrorStatus::OK;
 };
 
+class UrlParseException : public HttpHeaderException {
+public:
+    explicit UrlParseException(ErrorStatus e) : HttpHeaderException(e) {}
+    explicit UrlParseException(std::string msg) : HttpHeaderException(std::move(msg)) {}
+};
 
 } // namespace slim::common::http
 
