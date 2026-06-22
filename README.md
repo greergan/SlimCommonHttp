@@ -4,7 +4,7 @@
 
 # SlimCommonHttp
 
-Shared HTTP support code for the [SlimCommon](https://codeberg.org/greergan/SlimCommon) library — error reporting types used by the cookie and header parsing libraries built on top of it.  
+Shared HTTP support code for the [SlimCommon](https://codeberg.org/greergan/SlimCommon) library — error reporting types used by the cookie, header, and URL parsing libraries built on top of it.  
 Dependency of [SlimCommonHttpCookie](https://codeberg.org/greergan/SlimCommonHttpCookie), [SlimCommonHttpCookieStore](https://codeberg.org/greergan/SlimCommonHttpCookieStore), and [SlimCommonHttpHeaders](https://codeberg.org/greergan/SlimCommonHttpHeaders).  
 Built using [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager).  
 CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager).
@@ -16,6 +16,7 @@ CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://co
 - [Core API](#core-api)
   - [ErrorStatus enum](#errorstatus-enum)
   - [HttpHeaderException class](#httpheaderexception-class)
+  - [UrlParseException class](#urlparseexception-class)
 - [Building](#building)
 - [Dependencies](#dependencies)
 - [Examples](#examples)
@@ -24,9 +25,10 @@ CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://co
 
 This library is currently a single header, [`error_codes.h.in`](include/slim/common/http/error_codes.h.in), providing the shared vocabulary of error conditions used across SlimCommon's HTTP-related libraries:
 
-- A single `ErrorStatus` enum covering cookie validation, cookie attribute parsing, and generic HTTP header parsing failures
+- A single `ErrorStatus` enum covering cookie validation, cookie attribute parsing, generic HTTP header parsing, and URL parsing failures
 - A `constexpr` lookup table mapping every `ErrorStatus` value to a human-readable description
 - `HttpHeaderException`, a `std::logic_error`-derived exception type that carries an `ErrorStatus` alongside its message
+- `UrlParseException`, a specialized `HttpHeaderException` subtype for URL parsing failures
 
 [↑ Top](#table-of-contents)
 
@@ -34,9 +36,10 @@ This library is currently a single header, [`error_codes.h.in`](include/slim/com
 
 | Feature | Description |
 |--------|-------------|
-| Unified error enum | Single `ErrorStatus` type shared by cookie and header parsing code, avoiding divergent per-library error types |
+| Unified error enum | Single `ErrorStatus` type shared by cookie, header, and URL parsing code, avoiding divergent per-library error types |
 | Human-readable lookup | `error::status::to_string()` resolves any `ErrorStatus` to a descriptive string at compile time |
 | Structured exceptions | `HttpHeaderException` pairs a thrown error with its originating `ErrorStatus` for programmatic handling |
+| URL-specific exception | `UrlParseException` distinguishes URL parsing failures from other HTTP errors while reusing the same `ErrorStatus`/`error()` machinery |
 | Version macros | `SLIMCOMMONHTTP_VERSION` and `SLIMCOMMONHTTP_GIT_HASH` are injected at build time |
 
 [↑ Top](#table-of-contents)
@@ -90,6 +93,19 @@ All of `error_codes.h.in`'s lookup machinery is keyed off a single `ErrorStatus`
 | `HeaderValueEmpty` | Header value cannot be empty |
 | `HeaderValueInvalidChar` | Header value contains an invalid character |
 | `HeaderValueInvalidFolding` | Header value contains obsolete line folding (obs-fold) |
+| `UrlStringEmpty` | URL string cannot be empty |
+| `UrlInvalidControlCharacter` | URL contains an invalid control character |
+| `UrlSchemeInvalidCharacter` | URL scheme contains an invalid character |
+| `UrlSchemeDelimiterMissing` | URL scheme delimiter not found (expected `://`) |
+| `UrlSchemeUnsupported` | URL scheme is unsupported |
+| `UrlHostInvalidStart` | URL host must begin with alphanumeric data |
+| `UrlHostInvalidCharacter` | URL host contains an invalid character |
+| `UrlHostMissing` | URL must contain a valid host[:port] |
+| `UrlPortInvalidCharacter` | URL port contains an invalid character |
+| `UrlBodyInvalidCharacter` | URL body contains an invalid character |
+| `UrlFilePathMissing` | `file://` URL must contain a path (e.g. `file:///etc/hosts`) |
+| `UrlFilePathTrailingSlash` | `file://` URL path must end with a filename, not `/` |
+| `UrlUnparsable` | URL is unparsable |
 
 `ErrorStatus::END` is a sentinel marking the end of the enum and is not a valid status value.
 
@@ -118,6 +134,25 @@ public:
 | `HttpHeaderException(ErrorStatus e)` | Constructs the exception from an `ErrorStatus`, using its looked-up description as the `what()` message |
 | `HttpHeaderException(std::string msg)` | Constructs the exception from a free-form message, with `error()` defaulting to `ErrorStatus::OK` |
 | `ErrorStatus error() const noexcept` | Returns the `ErrorStatus` associated with this exception |
+
+[↑ Top](#table-of-contents)
+
+### UrlParseException class
+
+```cpp
+class UrlParseException : public HttpHeaderException {
+public:
+    explicit UrlParseException(ErrorStatus e);
+    explicit UrlParseException(std::string msg);
+};
+```
+
+`UrlParseException` derives from `HttpHeaderException` and inherits its constructors, `what()`, and `error()` behavior unchanged. It exists purely as a distinct type so callers can separate URL parsing failures from other HTTP errors with a dedicated `catch` clause, while code that only cares about the general case can still catch `HttpHeaderException` (or `std::logic_error`) and handle both uniformly.
+
+| Method | Description |
+|--------|-------------|
+| `UrlParseException(ErrorStatus e)` | Constructs the exception from an `ErrorStatus`, using its looked-up description as the `what()` message |
+| `UrlParseException(std::string msg)` | Constructs the exception from a free-form message, with `error()` defaulting to `ErrorStatus::OK` |
 
 [↑ Top](#table-of-contents)
 
@@ -150,6 +185,21 @@ catch (const slim::common::http::HttpHeaderException& e) {
     std::cerr << "HTTP error: " << e.what() << '\n';
     if (e.error() == slim::common::http::ErrorStatus::HeaderValueInvalidFolding) {
         // handle obsolete line folding specifically
+    }
+}
+```
+
+```cpp
+// Throwing and catching a UrlParseException
+try {
+    throw slim::common::http::UrlParseException(
+        slim::common::http::ErrorStatus::UrlSchemeUnsupported
+    );
+}
+catch (const slim::common::http::UrlParseException& e) {
+    std::cerr << "URL error: " << e.what() << '\n';
+    if (e.error() == slim::common::http::ErrorStatus::UrlSchemeUnsupported) {
+        // handle unsupported scheme specifically
     }
 }
 ```
