@@ -4,7 +4,7 @@
 
 # SlimCommonHttp
 
-Shared HTTP support code for the [SlimCommon](https://codeberg.org/greergan/SlimCommon) library — error reporting types used by the cookie, header, and URL parsing libraries built on top of it.  
+Shared HTTP support code for the [SlimCommon](https://codeberg.org/greergan/SlimCommon) library — error reporting and status code types used by the cookie, header, and URL parsing libraries built on top of it.  
 Dependency of [SlimCommonHttpCookie](https://codeberg.org/greergan/SlimCommonHttpCookie), [SlimCommonHttpCookieStore](https://codeberg.org/greergan/SlimCommonHttpCookieStore), and [SlimCommonHttpHeaders](https://codeberg.org/greergan/SlimCommonHttpHeaders).  
 Built using [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager).  
 CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager).
@@ -17,18 +17,21 @@ CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://co
   - [ErrorStatus enum](#errorstatus-enum)
   - [HttpHeaderException class](#httpheaderexception-class)
   - [UrlParseException class](#urlparseexception-class)
+  - [StatusCode enum](#statuscode-enum)
 - [Building](#building)
 - [Dependencies](#dependencies)
 - [Examples](#examples)
 
 ## Overview
 
-This library is currently a single header, [`error_codes.h.in`](include/slim/common/http/error_codes.h.in), providing the shared vocabulary of error conditions used across SlimCommon's HTTP-related libraries:
+This library provides the shared vocabulary of error conditions and HTTP status codes used across SlimCommon's HTTP-related libraries:
 
-- A single `ErrorStatus` enum covering cookie validation, cookie attribute parsing, generic HTTP header parsing, and URL parsing failures
+- A single `ErrorStatus` enum covering cookie validation, cookie attribute parsing, generic HTTP header parsing, and URL parsing failures, in [`error_codes.h.in`](include/slim/common/http/error_codes.h.in)
 - A `constexpr` lookup table mapping every `ErrorStatus` value to a human-readable description
 - `HttpHeaderException`, a `std::logic_error`-derived exception type that carries an `ErrorStatus` alongside its message
 - `UrlParseException`, a specialized `HttpHeaderException` subtype for URL parsing failures
+- A `StatusCode` enum covering the standard HTTP response status codes, in [`status_codes.h.in`](include/slim/common/http/status_codes.h.in)
+- A `constexpr` lookup table mapping every `StatusCode` value to its standard reason phrase
 
 [↑ Top](#table-of-contents)
 
@@ -40,6 +43,8 @@ This library is currently a single header, [`error_codes.h.in`](include/slim/com
 | Human-readable lookup | `error::status::to_string()` resolves any `ErrorStatus` to a descriptive string at compile time |
 | Structured exceptions | `HttpHeaderException` pairs a thrown error with its originating `ErrorStatus` for programmatic handling |
 | URL-specific exception | `UrlParseException` distinguishes URL parsing failures from other HTTP errors while reusing the same `ErrorStatus`/`error()` machinery |
+| HTTP status codes | `StatusCode` enum covers the standard 1xx-5xx HTTP response status codes |
+| Reason phrase lookup | `status::code::to_string()` resolves any `StatusCode` to its standard reason phrase at compile time |
 | Version macros | `SLIMCOMMONHTTP_VERSION` and `SLIMCOMMONHTTP_GIT_HASH` are injected at build time |
 
 [↑ Top](#table-of-contents)
@@ -48,7 +53,7 @@ This library is currently a single header, [`error_codes.h.in`](include/slim/com
 
 ### ErrorStatus enum
 
-All of `error_codes.h.in`'s lookup machinery is keyed off a single `ErrorStatus`. The full set of values is:
+All of [`error_codes.h.in`](include/slim/common/http/error_codes.h.in)'s lookup machinery is keyed off a single `ErrorStatus`. The full set of values is:
 
 | Value | Meaning |
 |-------|---------|
@@ -156,6 +161,95 @@ public:
 
 [↑ Top](#table-of-contents)
 
+### StatusCode enum
+
+[`status_codes.h.in`](include/slim/common/http/status_codes.h.in) provides `StatusCode`, an `enum class` covering the standard HTTP response status codes (1xx informational through 5xx server error), along with a lookup table mapping each value to its standard reason phrase:
+
+| Range | Examples |
+|-------|----------|
+| 1xx Informational | `Continue`, `SwitchingProtocols`, `Processing`, `EarlyHints` |
+| 2xx Success | `OK`, `Created`, `Accepted`, `NoContent`, `PartialContent` |
+| 3xx Redirection | `MovedPermanently`, `Found`, `NotModified`, `TemporaryRedirect`, `PermanentRedirect` |
+| 4xx Client Error | `BadRequest`, `Unauthorized`, `Forbidden`, `NotFound`, `ImATeapot`, `TooManyRequests` |
+| 5xx Server Error | `InternalServerError`, `NotImplemented`, `BadGateway`, `ServiceUnavailable`, `GatewayTimeout` |
+
+The full set of values is:
+
+| Code | Value | Reason Phrase |
+|------|-------|----------------|
+| `Continue` | 100 | Continue |
+| `SwitchingProtocols` | 101 | Switching Protocols |
+| `Processing` | 102 | Processing |
+| `EarlyHints` | 103 | Early Hints |
+| `OK` | 200 | OK |
+| `Created` | 201 | Created |
+| `Accepted` | 202 | Accepted |
+| `NonAuthoritativeInformation` | 203 | Non-Authoritative Information |
+| `NoContent` | 204 | No Content |
+| `ResetContent` | 205 | Reset Content |
+| `PartialContent` | 206 | Partial Content |
+| `MultiStatus` | 207 | Multi-Status |
+| `AlreadyReported` | 208 | Already Reported |
+| `IMUsed` | 226 | IM Used |
+| `MultipleChoices` | 300 | Multiple Choices |
+| `MovedPermanently` | 301 | Moved Permanently |
+| `Found` | 302 | Found |
+| `SeeOther` | 303 | See Other |
+| `NotModified` | 304 | Not Modified |
+| `UseProxy` | 305 | Use Proxy |
+| `TemporaryRedirect` | 307 | Temporary Redirect |
+| `PermanentRedirect` | 308 | Permanent Redirect |
+| `BadRequest` | 400 | Bad Request |
+| `Unauthorized` | 401 | Unauthorized |
+| `PaymentRequired` | 402 | Payment Required |
+| `Forbidden` | 403 | Forbidden |
+| `NotFound` | 404 | Not Found |
+| `MethodNotAllowed` | 405 | Method Not Allowed |
+| `NotAcceptable` | 406 | Not Acceptable |
+| `ProxyAuthenticationRequired` | 407 | Proxy Authentication Required |
+| `RequestTimeout` | 408 | Request Timeout |
+| `Conflict` | 409 | Conflict |
+| `Gone` | 410 | Gone |
+| `LengthRequired` | 411 | Length Required |
+| `PreconditionFailed` | 412 | Precondition Failed |
+| `PayloadTooLarge` | 413 | Payload Too Large |
+| `UriTooLong` | 414 | URI Too Long |
+| `UnsupportedMediaType` | 415 | Unsupported Media Type |
+| `RangeNotSatisfiable` | 416 | Range Not Satisfiable |
+| `ExpectationFailed` | 417 | Expectation Failed |
+| `ImATeapot` | 418 | I'm a teapot |
+| `MisdirectedRequest` | 421 | Misdirected Request |
+| `UnprocessableEntity` | 422 | Unprocessable Entity |
+| `Locked` | 423 | Locked |
+| `FailedDependency` | 424 | Failed Dependency |
+| `TooEarly` | 425 | Too Early |
+| `UpgradeRequired` | 426 | Upgrade Required |
+| `PreconditionRequired` | 428 | Precondition Required |
+| `TooManyRequests` | 429 | Too Many Requests |
+| `RequestHeaderFieldsTooLarge` | 431 | Request Header Fields Too Large |
+| `UnavailableForLegalReasons` | 451 | Unavailable For Legal Reasons |
+| `InternalServerError` | 500 | Internal Server Error |
+| `NotImplemented` | 501 | Not Implemented |
+| `BadGateway` | 502 | Bad Gateway |
+| `ServiceUnavailable` | 503 | Service Unavailable |
+| `GatewayTimeout` | 504 | Gateway Timeout |
+| `HttpVersionNotSupported` | 505 | HTTP Version Not Supported |
+| `VariantAlsoNegotiates` | 506 | Variant Also Negotiates |
+| `InsufficientStorage` | 507 | Insufficient Storage |
+| `LoopDetected` | 508 | Loop Detected |
+| `NotExtended` | 510 | Not Extended |
+| `NetworkAuthenticationRequired` | 511 | Network Authentication Required |
+
+Status codes can be converted to their standard reason phrase via:
+
+```cpp
+std::string_view phrase = slim::common::http::status::code::to_string(code);
+```
+
+Codes with no defined reason phrase in the lookup table resolve to `"Unknown Status"`.
+
+[↑ Top](#table-of-contents)
+
 ## Building
 
 This library is built using [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager). See that repository for build instructions.
@@ -202,6 +296,13 @@ catch (const slim::common::http::UrlParseException& e) {
         // handle unsupported scheme specifically
     }
 }
+```
+
+```cpp
+// Looking up the reason phrase for a StatusCode
+slim::common::http::StatusCode code = slim::common::http::StatusCode::NotFound;
+std::string_view phrase = slim::common::http::status::code::to_string(code);
+std::cout << static_cast<int>(code) << ' ' << phrase << '\n'; // "404 Not Found"
 ```
 
 [↑ Top](#table-of-contents)
