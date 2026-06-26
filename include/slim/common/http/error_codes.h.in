@@ -68,6 +68,19 @@ enum class ErrorStatus : uint8_t {
     UrlFilePathMissing,
     UrlFilePathTrailingSlash,
     UrlUnparsable,
+    ResponseStorageEmpty,
+    ResponseStatusLineInvalid,
+    ResponseStatusCodeInvalid,
+    ResponseStatusCodeOutOfRange,
+    ResponseHeadersTerminatorMalformed,
+    ResponseHeadersBareCR,
+    ResponseHeadersNotTerminated,
+    ResponseChunkedMissingCRLF,
+    ResponseChunkedSizeInvalid,
+    ResponseChunkedTruncated,
+    ResponseChunkedMissingCRLFAfterData,
+    ResponseContentLengthInvalid,
+    ResponseContentLengthMismatch,
     END
 };
 
@@ -126,7 +139,20 @@ namespace error::status {
         "URL body contains an invalid character",                            // UrlBodyInvalidCharacter
         "file:// URL must contain a path (e.g. file:///etc/hosts)",          // UrlFilePathMissing
         "file:// URL path must end with a filename, not '/'",                // UrlFilePathTrailingSlash
-        "URL is unparsable"                                                  // UrlUnparsable
+        "URL is unparsable",                                                 // UrlUnparsable
+        "Response storage is empty",                                         // ResponseStorageEmpty
+        "Response status line is unparsable",                                // ResponseStatusLineInvalid
+        "Response status code is invalid",                                   // ResponseStatusCodeInvalid
+        "Response status code is out of range (must be 100-599)",            // ResponseStatusCodeOutOfRange
+        "Response header section terminator is malformed",                   // ResponseHeadersTerminatorMalformed
+        "Response headers contain a bare CR",                                // ResponseHeadersBareCR
+        "Response header section is not terminated",                         // ResponseHeadersNotTerminated
+        "Chunked response is missing a required CRLF",                       // ResponseChunkedMissingCRLF
+        "Chunked response contains an invalid chunk size",                   // ResponseChunkedSizeInvalid
+        "Chunked response chunk size exceeds remaining payload",             // ResponseChunkedTruncated
+        "Chunked response is missing CRLF after chunk data",                 // ResponseChunkedMissingCRLFAfterData
+        "Response Content-Length value is invalid",                          // ResponseContentLengthInvalid
+        "Response Content-Length exceeds available body bytes"               // ResponseContentLengthMismatch
     };
 
     [[nodiscard]] constexpr std::string_view to_string(ErrorStatus status) noexcept {
@@ -152,6 +178,12 @@ class UrlParseException : public HttpHeaderException {
 public:
     explicit UrlParseException(ErrorStatus e) : HttpHeaderException(e) {}
     explicit UrlParseException(std::string msg) : HttpHeaderException(std::move(msg)) {}
+};
+
+class ResponseParseException : public HttpHeaderException {
+public:
+    explicit ResponseParseException(ErrorStatus e) : HttpHeaderException(e) {}
+    explicit ResponseParseException(std::string msg) : HttpHeaderException(std::move(msg)) {}
 };
 
 } // namespace slim::common::http
