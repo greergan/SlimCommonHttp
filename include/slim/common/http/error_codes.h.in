@@ -15,6 +15,7 @@ namespace slim::common::http {
 
 enum class ErrorStatus : uint8_t {
     OK = 0,
+    BadAllocation,
     CookieDomainBareDot,
     CookieDomainEmpty,
     CookieDomainInvalidChar,
@@ -95,6 +96,7 @@ enum class ErrorStatus : uint8_t {
 namespace error::status {
     constexpr std::array<std::string_view, static_cast<std::size_t>(ErrorStatus::END)> strings = {
         "OK",                                                                // OK
+        "Memory allocation failed",                                          // BadAllocation
         "Cookie domain cannot consist of a bare dot",                        // CookieDomainBareDot
         "Cookie domain name cannot be empty",                                // CookieDomainEmpty
         "Cookie domain contains an invalid character",                       // CookieDomainInvalidChar

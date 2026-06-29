@@ -64,6 +64,7 @@ All of [`error_codes.h.in`](include/slim/common/http/error_codes.h.in)'s lookup 
 | Value | Meaning |
 |-------|---------|
 | `OK` | Success |
+| `BadAllocation` | Memory allocation failed |
 | `CookieDomainBareDot` | Cookie domain cannot consist of a bare dot |
 | `CookieDomainEmpty` | Cookie domain name cannot be empty |
 | `CookieDomainInvalidChar` | Cookie domain contains an invalid character |
