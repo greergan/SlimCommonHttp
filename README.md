@@ -4,7 +4,7 @@
 
 # SlimCommonHttp
 
-Shared HTTP support code for the [SlimCommon](https://codeberg.org/greergan/SlimCommon) library — error reporting and status code types used by the cookie, header, URL, and response parsing libraries built on top of it.  
+Shared HTTP support code for the [SlimCommon](https://codeberg.org/greergan/SlimCommon) library — error reporting and status code types used by the cookie, header, URL, response, and search parameter parsing libraries built on top of it.  
 Dependency of [SlimCommonHttpCookie](https://codeberg.org/greergan/SlimCommonHttpCookie), [SlimCommonHttpCookieStore](https://codeberg.org/greergan/SlimCommonHttpCookieStore), and [SlimCommonHttpHeaders](https://codeberg.org/greergan/SlimCommonHttpHeaders).  
 Built using [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager).  
 CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://codeberg.org/greergan/SlimLibraryPackager).
@@ -18,6 +18,7 @@ CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://co
   - [HttpHeaderException class](#httpheaderexception-class)
   - [UrlParseException class](#urlparseexception-class)
   - [ResponseParseException class](#responseparseexception-class)
+  - [SearchParamParseException class](#searchparamparseexception-class)
   - [StatusCode enum](#statuscode-enum)
 - [Building](#building)
 - [Dependencies](#dependencies)
@@ -27,11 +28,12 @@ CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://co
 
 This library provides the shared vocabulary of error conditions and HTTP status codes used across SlimCommon's HTTP-related libraries:
 
-- A single `ErrorStatus` enum covering cookie validation, cookie attribute parsing, generic HTTP header parsing, URL parsing, request status-line parsing, and HTTP response parsing failures, in [`error_codes.h.in`](include/slim/common/http/error_codes.h.in)
+- A single `ErrorStatus` enum covering cookie validation, cookie attribute parsing, generic HTTP header parsing, URL parsing, request status-line parsing, HTTP response parsing, and search parameter parsing failures, in [`error_codes.h.in`](include/slim/common/http/error_codes.h.in)
 - A `constexpr` lookup table mapping every `ErrorStatus` value to a human-readable description
 - `HttpHeaderException`, a `std::logic_error`-derived exception type that carries an `ErrorStatus` alongside its message
 - `UrlParseException`, a specialized `HttpHeaderException` subtype for URL parsing failures
 - `ResponseParseException`, a specialized `HttpHeaderException` subtype for HTTP response parsing failures
+- `SearchParamParseException`, a specialized `HttpHeaderException` subtype for URL search parameter parsing failures
 - A `StatusCode` enum covering the standard HTTP response status codes, in [`status_codes.h.in`](include/slim/common/http/status_codes.h.in)
 - A `constexpr` lookup table mapping every `StatusCode` value to its standard reason phrase
 
@@ -41,11 +43,12 @@ This library provides the shared vocabulary of error conditions and HTTP status 
 
 | Feature | Description |
 |--------|-------------|
-| Unified error enum | Single `ErrorStatus` type shared by cookie, header, URL, request, and response parsing code, avoiding divergent per-library error types |
+| Unified error enum | Single `ErrorStatus` type shared by cookie, header, URL, request, response, and search parameter parsing code, avoiding divergent per-library error types |
 | Human-readable lookup | `error::status::to_string()` resolves any `ErrorStatus` to a descriptive string at compile time |
 | Structured exceptions | `HttpHeaderException` pairs a thrown error with its originating `ErrorStatus` for programmatic handling |
 | URL-specific exception | `UrlParseException` distinguishes URL parsing failures from other HTTP errors while reusing the same `ErrorStatus`/`error()` machinery |
 | Response-specific exception | `ResponseParseException` distinguishes HTTP response parsing failures from other HTTP errors while reusing the same `ErrorStatus`/`error()` machinery |
+| Search param exception | `SearchParamParseException` distinguishes URL search parameter parsing failures from other HTTP errors while reusing the same `ErrorStatus`/`error()` machinery |
 | HTTP status codes | `StatusCode` enum covers the standard 1xx-5xx HTTP response status codes |
 | Reason phrase lookup | `status::code::to_string()` resolves any `StatusCode` to its standard reason phrase at compile time |
 | Version macros | `SLIMCOMMONHTTP_VERSION` and `SLIMCOMMONHTTP_GIT_HASH` are injected at build time |
@@ -131,6 +134,10 @@ All of [`error_codes.h.in`](include/slim/common/http/error_codes.h.in)'s lookup 
 | `ResponseChunkedMissingCRLFAfterData` | Chunked response is missing CRLF after chunk data |
 | `ResponseContentLengthInvalid` | Response Content-Length value is invalid |
 | `ResponseContentLengthMismatch` | Response Content-Length exceeds available body bytes |
+| `SearchParamNameEmpty` | Search parameter name cannot be empty |
+| `SearchParamNameInvalidChar` | Search parameter name contains an invalid character |
+| `SearchParamValueInvalidChar` | Search parameter value contains an invalid character |
+| `SearchParamInvalidPercentEncoding` | Search parameter contains an invalid percent-encoding sequence |
 
 `ErrorStatus::END` is a sentinel marking the end of the enum and is not a valid status value.
 
@@ -197,6 +204,25 @@ public:
 |--------|-------------|
 | `ResponseParseException(ErrorStatus e)` | Constructs the exception from an `ErrorStatus`, using its looked-up description as the `what()` message |
 | `ResponseParseException(std::string msg)` | Constructs the exception from a free-form message, with `error()` defaulting to `ErrorStatus::OK` |
+
+[↑ Top](#table-of-contents)
+
+### SearchParamParseException class
+
+```cpp
+class SearchParamParseException : public HttpHeaderException {
+public:
+    explicit SearchParamParseException(ErrorStatus e);
+    explicit SearchParamParseException(std::string msg);
+};
+```
+
+`SearchParamParseException` derives from `HttpHeaderException` and inherits its constructors, `what()`, and `error()` behavior unchanged. It exists purely as a distinct type so callers can separate URL search parameter parsing failures from other HTTP errors with a dedicated `catch` clause, while code that only cares about the general case can still catch `HttpHeaderException` (or `std::logic_error`) and handle both uniformly.
+
+| Method | Description |
+|--------|-------------|
+| `SearchParamParseException(ErrorStatus e)` | Constructs the exception from an `ErrorStatus`, using its looked-up description as the `what()` message |
+| `SearchParamParseException(std::string msg)` | Constructs the exception from a free-form message, with `error()` defaulting to `ErrorStatus::OK` |
 
 [↑ Top](#table-of-contents)
 
@@ -348,6 +374,21 @@ catch (const slim::common::http::ResponseParseException& e) {
     std::cerr << "Response error: " << e.what() << '\n';
     if (e.error() == slim::common::http::ErrorStatus::ResponseContentLengthMismatch) {
         // handle Content-Length mismatch specifically
+    }
+}
+```
+
+```cpp
+// Throwing and catching a SearchParamParseException
+try {
+    throw slim::common::http::SearchParamParseException(
+        slim::common::http::ErrorStatus::SearchParamNameInvalidChar
+    );
+}
+catch (const slim::common::http::SearchParamParseException& e) {
+    std::cerr << "Search param error: " << e.what() << '\n';
+    if (e.error() == slim::common::http::ErrorStatus::SearchParamNameInvalidChar) {
+        // handle invalid search parameter name specifically
     }
 }
 ```

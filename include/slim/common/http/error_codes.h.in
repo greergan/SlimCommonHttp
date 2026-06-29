@@ -85,6 +85,10 @@ enum class ErrorStatus : uint8_t {
     ResponseChunkedMissingCRLFAfterData,
     ResponseContentLengthInvalid,
     ResponseContentLengthMismatch,
+    SearchParamNameEmpty,
+    SearchParamNameInvalidChar,
+    SearchParamValueInvalidChar,
+    SearchParamInvalidPercentEncoding,
     END
 };
 
@@ -160,7 +164,11 @@ namespace error::status {
         "Chunked response chunk size exceeds remaining payload",             // ResponseChunkedTruncated
         "Chunked response is missing CRLF after chunk data",                 // ResponseChunkedMissingCRLFAfterData
         "Response Content-Length value is invalid",                          // ResponseContentLengthInvalid
-        "Response Content-Length exceeds available body bytes"               // ResponseContentLengthMismatch
+        "Response Content-Length exceeds available body bytes",              // ResponseContentLengthMismatch
+        "Search parameter name cannot be empty",                             // SearchParamNameEmpty
+        "Search parameter name contains an invalid character",               // SearchParamNameInvalidChar
+        "Search parameter value contains an invalid character",              // SearchParamValueInvalidChar
+        "Search parameter contains an invalid percent-encoding sequence"     // SearchParamInvalidPercentEncoding
     };
 
     [[nodiscard]] constexpr std::string_view to_string(ErrorStatus status) noexcept {
@@ -192,6 +200,12 @@ class ResponseParseException : public HttpHeaderException {
 public:
     explicit ResponseParseException(ErrorStatus e) : HttpHeaderException(e) {}
     explicit ResponseParseException(std::string msg) : HttpHeaderException(std::move(msg)) {}
+};
+
+class SearchParamParseException : public HttpHeaderException {
+public:
+    explicit SearchParamParseException(ErrorStatus e) : HttpHeaderException(e) {}
+    explicit SearchParamParseException(std::string msg) : HttpHeaderException(std::move(msg)) {}
 };
 
 } // namespace slim::common::http
