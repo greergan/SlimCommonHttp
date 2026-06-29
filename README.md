@@ -27,7 +27,7 @@ CI/CD supplied by unified workflows provided by [SlimLibraryPackager](https://co
 
 This library provides the shared vocabulary of error conditions and HTTP status codes used across SlimCommon's HTTP-related libraries:
 
-- A single `ErrorStatus` enum covering cookie validation, cookie attribute parsing, generic HTTP header parsing, URL parsing, and HTTP response parsing failures, in [`error_codes.h.in`](include/slim/common/http/error_codes.h.in)
+- A single `ErrorStatus` enum covering cookie validation, cookie attribute parsing, generic HTTP header parsing, URL parsing, request status-line parsing, and HTTP response parsing failures, in [`error_codes.h.in`](include/slim/common/http/error_codes.h.in)
 - A `constexpr` lookup table mapping every `ErrorStatus` value to a human-readable description
 - `HttpHeaderException`, a `std::logic_error`-derived exception type that carries an `ErrorStatus` alongside its message
 - `UrlParseException`, a specialized `HttpHeaderException` subtype for URL parsing failures
@@ -41,7 +41,7 @@ This library provides the shared vocabulary of error conditions and HTTP status 
 
 | Feature | Description |
 |--------|-------------|
-| Unified error enum | Single `ErrorStatus` type shared by cookie, header, URL, and response parsing code, avoiding divergent per-library error types |
+| Unified error enum | Single `ErrorStatus` type shared by cookie, header, URL, request, and response parsing code, avoiding divergent per-library error types |
 | Human-readable lookup | `error::status::to_string()` resolves any `ErrorStatus` to a descriptive string at compile time |
 | Structured exceptions | `HttpHeaderException` pairs a thrown error with its originating `ErrorStatus` for programmatic handling |
 | URL-specific exception | `UrlParseException` distinguishes URL parsing failures from other HTTP errors while reusing the same `ErrorStatus`/`error()` machinery |
@@ -114,6 +114,10 @@ All of [`error_codes.h.in`](include/slim/common/http/error_codes.h.in)'s lookup 
 | `UrlFilePathMissing` | `file://` URL must contain a path (e.g. `file:///etc/hosts`) |
 | `UrlFilePathTrailingSlash` | `file://` URL path must end with a filename, not `/` |
 | `UrlUnparsable` | URL is unparsable |
+| `RequestStringEmpty` | Request string cannot be empty |
+| `RequestStatusLineInvalid` | Request status line is unparsable |
+| `RequestStatusLineMalformed` | Request status line is malformed |
+| `RequestHeadersNotTerminated` | Request header section is not terminated |
 | `ResponseStorageEmpty` | Response storage is empty |
 | `ResponseStatusLineInvalid` | Response status line is unparsable |
 | `ResponseStatusCodeInvalid` | Response status code is invalid |

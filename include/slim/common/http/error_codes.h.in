@@ -68,6 +68,10 @@ enum class ErrorStatus : uint8_t {
     UrlFilePathMissing,
     UrlFilePathTrailingSlash,
     UrlUnparsable,
+    RequestStringEmpty,
+    RequestStatusLineInvalid,
+    RequestStatusLineMalformed,
+    RequestHeadersNotTerminated,
     ResponseStorageEmpty,
     ResponseStatusLineInvalid,
     ResponseStatusCodeInvalid,
@@ -140,6 +144,10 @@ namespace error::status {
         "file:// URL must contain a path (e.g. file:///etc/hosts)",          // UrlFilePathMissing
         "file:// URL path must end with a filename, not '/'",                // UrlFilePathTrailingSlash
         "URL is unparsable",                                                 // UrlUnparsable
+        "Request string cannot be empty",                                    // RequestStringEmpty
+        "Request status line is unparsable",                                 // RequestStatusLineInvalid
+        "Request status line is malformed",                                  // RequestStatusLineMalformed
+        "Request header section is not terminated",                          // RequestHeadersNotTerminated
         "Response storage is empty",                                         // ResponseStorageEmpty
         "Response status line is unparsable",                                // ResponseStatusLineInvalid
         "Response status code is invalid",                                   // ResponseStatusCodeInvalid
